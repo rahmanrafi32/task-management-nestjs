@@ -1,4 +1,4 @@
-import { Status } from '../task.model';
+import { Status } from '../task-status.enum';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class Get_task_by_filterDto {
