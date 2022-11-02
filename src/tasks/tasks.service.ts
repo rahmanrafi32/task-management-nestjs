@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Status } from './task-status.enum';
 import { Create_taskDto } from './dto/create_task.dto';
 import { Task } from '../TypeORM Entities/task.entity';
@@ -32,8 +36,8 @@ export class TasksService {
     } else return query.getMany();
   }
 
-  async getTaskById(id: string): Promise<Task> {
-    const task = await this.taskRepository.findOneBy({ id });
+  async getTaskById(id: string, user: UserEntity): Promise<Task> {
+    const task = await this.taskRepository.findOneBy({ id, user });
     if (!task) throw new NotFoundException(`Task ${id} is not found`);
     return task;
   }
@@ -53,15 +57,21 @@ export class TasksService {
     return task;
   }
 
-  async updateTask(id: string, status: Status): Promise<Task> {
-    const task = await this.getTaskById(id);
+  async updateTask(
+    id: string,
+    status: Status,
+    user: UserEntity,
+  ): Promise<Task> {
+    const task = await this.getTaskById(id, user);
     task.status = status;
     await this.taskRepository.save(task);
     return task;
   }
 
-  async deleteTask(id: string): Promise<string> {
-    await this.taskRepository.delete(id);
-    return JSON.stringify({ message: 'Task has been deleted' });
+  async deleteTask(id: string, user: UserEntity): Promise<string> {
+    const deleteTs = await this.taskRepository.delete({ id, user });
+    if (deleteTs.affected) {
+      return JSON.stringify({ message: 'Task has been deleted' });
+    } else throw new UnauthorizedException();
   }
 }
