@@ -9,12 +9,14 @@ import { UserEntity } from '../TypeORM Entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async signUp(createUserDto: CreateUserDto): Promise<string> {
@@ -34,14 +36,17 @@ export class UserService {
     return JSON.stringify({ message: 'User created' });
   }
 
-  async signIn(userDto: CreateUserDto): Promise<string> {
+  async signIn(userDto: CreateUserDto): Promise<{ accessToken: string }> {
     const { username, password } = userDto;
     try {
       const user = await this.userRepository.findOneBy({ username });
       const comparePass = await bcrypt.compare(password, user.password);
-      if (user && comparePass) return JSON.stringify({ message: 'Signed In' });
+      if (user && comparePass) {
+        const accessToken = this.jwtService.sign({ username });
+        return { accessToken };
+      }
     } catch (err) {
-      throw new UnauthorizedException("Credential didn't matched");
+      throw new UnauthorizedException('Credential mismatched.');
     }
   }
 }
